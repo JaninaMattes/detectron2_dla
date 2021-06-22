@@ -10,6 +10,7 @@ from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.engine import SimpleTrainer
 from detectron2.structures import BoxMode
+from detectron2.data.datasets import register_coco_instances
 
 
 class FineTuner(SimpleTrainer):
@@ -18,12 +19,26 @@ class FineTuner(SimpleTrainer):
     of pre-defined logic for a standard training workflow.
     """
 
-    # if your dataset is in COCO format, this cell can be replaced by the following three lines:
-    # from detectron2.data.datasets import register_coco_instances
-    # register_coco_instances("my_dataset_train", {}, "json_annotation_train.json", "path/to/image/dir")
-    # register_coco_instances("my_dataset_val", {}, "json_annotation_val.json", "path/to/image/dir")
+    def register_document_dicts_coco(name_train, name_val, json_train_file, json_val_file, image_root, metadata={}):
+        """
+        For the parsing and mapping of datasets which are in COCO format
+        according to the Detectron2 documentation. 
+        Register a dataset in COCO's json annotation format for
+        instance detection, instance segmentation.
+        (i.e., Type 1 in http://cocodataset.org/#format-data.
+        `instances*.json`)
+
+        Example Train: "my_dataset_train", {}, "json_annotation_train.json", "path/to/image/dir"
+        Example Val: "my_dataset_val", {}, "json_annotation_val.json", "path/to/image/dir"
+        """
+
+        register_coco_instances(name=name_train, metadata=metadata, json_file=json_train_file, image_root=image_root)
+        register_coco_instances(name=name_val, metadata=metadata, json_file=json_val_file, image_root=image_root)
 
     def get_document_dicts(img_dir):
+        """
+        For the parsing and mapping of datasets which are not in COCO format.
+        """
         json_file = os.path.join(img_dir, "via_region_data.json")
         with open(json_file) as f:
             imgs_anns = json.load(f)
