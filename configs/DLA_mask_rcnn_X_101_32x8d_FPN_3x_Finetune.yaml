@@ -1,8 +1,8 @@
-_BASE_: "Base-RCNN-FPN.yaml"
+_BASE_: "DLA_mask_rcnn_X_101_32x8d_FPN_3x.yaml"
 MODEL:
   MASK_ON: True
 #  WEIGHTS: "detectron2://ImageNetPretrained/FAIR/X-101-32x8d.pkl"
-  WEIGHTS: "detectron2://COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x/139653917/model_final_2d9806.pkl"
+  WEIGHTS: "detectron2://PubLayNet-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x/139653917/model_final_2d9806.pkl"
   PIXEL_STD: [57.375, 57.120, 58.395]
   ROI_HEADS:
     NUM_CLASSES: 5
