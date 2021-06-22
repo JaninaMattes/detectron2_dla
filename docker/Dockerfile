@@ -35,6 +35,16 @@ RUN pip install --user -e detectron2_repo
 ENV FVCORE_CACHE="/tmp"
 WORKDIR /home/appuser/detectron2_repo
 
+# Copy config files (DLA_*) from this repo to the installed Detectron2
+COPY detectron2/configs/DLA_* /home/appuser/detectron2_repo/config
+
+# Fetch pre-trained model
+RUN mkdir /home/appuser/detectron2
+COPY . /home/appuser/detectron2
+
+RUN mkdir /home/appuser/detectron2/pretrained_model
+RUN wget https://github.com/hpanwar08/detectron2/issues/22 /home/appuser/detectron2/pretrained_model
+
 # run it, for example:
 # wget http://images.cocodataset.org/val2017/000000439715.jpg -O input.jpg
 # python3 demo/demo.py  \

@@ -39,3 +39,12 @@ dist/
 /detectron2/model_zoo/configs
 /datasets
 /models
+
+# VS code
+.vscode/
+
+# virtualenvs
+env/
+venv/
+.env/
+.venv/

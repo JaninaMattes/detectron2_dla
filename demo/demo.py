@@ -1,5 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import argparse
+from detectron2.data.catalog import MetadataCatalog
+from detectron2.data import MetadataCatalog
+
 import glob
 import multiprocessing as mp
 import os
@@ -11,7 +14,7 @@ from detectron2.config import get_cfg
 from detectron2.data.detection_utils import read_image
 from detectron2.utils.logger import setup_logger
 
-from predictor import VisualizationDemo
+from demo.predictor import VisualizationDemo
 
 # constants
 WINDOW_NAME = "COCO detections"
@@ -67,6 +70,7 @@ if __name__ == "__main__":
     args = get_parser().parse_args()
     logger = setup_logger()
     logger.info("Arguments: " + str(args))
+    MetadataCatalog.get("dla_val").thing_classes = ['text', 'title', 'list', 'table', 'figure']
 
     cfg = setup_cfg(args)
 
