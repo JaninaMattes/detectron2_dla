@@ -79,7 +79,7 @@ class FineTuner(DefaultTrainer):
             return evaluator_list[0]
         return DatasetEvaluators(evaluator_list)
 
-def _transfer_pretrained_weights(model, pretrained_model_pth):
+def transfer_pretrained_weights(model, pretrained_model_pth):
     pretrained_weights = torch.load(pretrained_model_pth)['model']
     new_dict = {k.replace('module.',''):v for k, v in pretrained_weights.items()
                 if 'cls_score' not in k and 'bbox_pred' not in k}
@@ -95,18 +95,18 @@ def setup(args):
     cfg = get_cfg()
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
-    cfg.freeze()
+    cfg.freeze() #freezes the first two layers of the backbone
     default_setup(cfg, args)
     return cfg
 
-def main(args, pretrained_model_pth=""):
+def main(args, pretrained_model_pth="./models/Resnet-101/model_final.pth"):
     """ source: https://github.com/facebookresearch/maskrcnn-benchmark/issues/15
     """
     cfg = setup(args)
 
     if args.eval_only:
         model = FineTuner.build_model(cfg)
-        model = _transfer_pretrained_weights(model, pretrained_model_pth) # Todo Test
+        model = transfer_pretrained_weights(model, pretrained_model_pth) # Todo Test
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             cfg.MODEL.WEIGHTS, resume=args.resume
         )
@@ -119,9 +119,9 @@ def main(args, pretrained_model_pth=""):
 
     """
     If you'd like to do anything fancier than the standard training logic,
-    consider writing your own training loop or subclassing the FineTuner.
+    consider writing your own training loop or subclassing the trainer.
     """
-    trainer = FineTuner(cfg)
+    # trainer = FineTuner(cfg)
     FineTuner.resume_or_load(resume=args.resume)
     if cfg.TEST.AUG.ENABLED:
         FineTuner.register_hooks(

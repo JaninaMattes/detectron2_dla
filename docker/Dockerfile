@@ -43,7 +43,7 @@ RUN mkdir /home/appuser/detectron2
 COPY . /home/appuser/detectron2
 
 RUN mkdir /home/appuser/detectron2/pretrained_model
-RUN wget https://github.com/hpanwar08/detectron2/issues/22 /home/appuser/detectron2/pretrained_model
+RUN wget https://www.dropbox.com/sh/wgt9skz67usliei/AADGw0h1y7K5vO0akulyXm-qa/model_final.pth?dl=0 /home/appuser/detectron2/pretrained_model
 
 # run it, for example:
 # wget http://images.cocodataset.org/val2017/000000439715.jpg -O input.jpg
@@ -51,3 +51,5 @@ RUN wget https://github.com/hpanwar08/detectron2/issues/22 /home/appuser/detectr
 	#--config-file configs/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml \
 	#--input input.jpg --output outputs/ \
 	#--opts MODEL.WEIGHTS detectron2://COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl
+
+RUN python3 tools/finetune_net.py
