@@ -1,21 +1,18 @@
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+#!/usr/bin/env python
+# Copyright (c) Facebook, Inc. and its affiliates.
 """
 Detectron2 training script with a plain training loop.
-
-This scripts reads a given config file and runs the training or evaluation.
+This script reads a given config file and runs the training or evaluation.
 It is an entry point that is able to train standard models in detectron2.
-
 In order to let one script support training of many models,
 this script contains logic that are specific to these built-in models and therefore
 may not be suitable for your own project.
 For example, your research project perhaps only needs a single "evaluator".
-
-Therefore, we recommend you to use detectron2 as an library and take
+Therefore, we recommend you to use detectron2 as a library and take
 this file as an example of how to use the library.
 You may want to write your own script with your datasets and other customizations.
-
-Compared to "train_net.py", this script supports fewer features, and also
-includes fewer abstraction.
+Compared to "train_net.py", this script supports fewer default features.
+It also includes fewer abstraction, therefore is easier to add custom logic.
 """
 
 import logging
@@ -32,9 +29,10 @@ from detectron2.data import (
     build_detection_test_loader,
     build_detection_train_loader,
 )
-from detectron2.engine import default_argument_parser, default_setup, launch
+from detectron2.engine import default_argument_parser, default_setup, default_writers, launch
 from detectron2.evaluation import (
-    CityscapesEvaluator,
+    CityscapesInstanceEvaluator,
+    CityscapesSemSegEvaluator,
     COCOEvaluator,
     COCOPanopticEvaluator,
     DatasetEvaluators,
@@ -46,12 +44,7 @@ from detectron2.evaluation import (
 )
 from detectron2.modeling import build_model
 from detectron2.solver import build_lr_scheduler, build_optimizer
-from detectron2.utils.events import (
-    CommonMetricPrinter,
-    EventStorage,
-    JSONWriter,
-    TensorboardXWriter,
-)
+from detectron2.utils.events import EventStorage
 
 logger = logging.getLogger("detectron2")
 
@@ -72,20 +65,23 @@ def get_evaluator(cfg, dataset_name, output_folder=None):
             SemSegEvaluator(
                 dataset_name,
                 distributed=True,
-                num_classes=cfg.MODEL.SEM_SEG_HEAD.NUM_CLASSES,
-                ignore_label=cfg.MODEL.SEM_SEG_HEAD.IGNORE_VALUE,
                 output_dir=output_folder,
             )
         )
     if evaluator_type in ["coco", "coco_panoptic_seg"]:
-        evaluator_list.append(COCOEvaluator(dataset_name, cfg, True, output_folder))
+        evaluator_list.append(COCOEvaluator(dataset_name, output_dir=output_folder))
     if evaluator_type == "coco_panoptic_seg":
         evaluator_list.append(COCOPanopticEvaluator(dataset_name, output_folder))
-    if evaluator_type == "cityscapes":
+    if evaluator_type == "cityscapes_instance":
         assert (
             torch.cuda.device_count() >= comm.get_rank()
         ), "CityscapesEvaluator currently do not work with multiple machines."
-        return CityscapesEvaluator(dataset_name)
+        return CityscapesInstanceEvaluator(dataset_name)
+    if evaluator_type == "cityscapes_sem_seg":
+        assert (
+            torch.cuda.device_count() >= comm.get_rank()
+        ), "CityscapesEvaluator currently do not work with multiple machines."
+        return CityscapesSemSegEvaluator(dataset_name)
     if evaluator_type == "pascal_voc":
         return PascalVOCDetectionEvaluator(dataset_name)
     if evaluator_type == "lvis":
@@ -117,6 +113,7 @@ def do_test(cfg, model):
 
 
 def do_train(cfg, model, resume=False):
+    # train model
     model.train()
     optimizer = build_optimizer(cfg, model)
     scheduler = build_lr_scheduler(cfg, optimizer)
@@ -133,27 +130,20 @@ def do_train(cfg, model, resume=False):
         checkpointer, cfg.SOLVER.CHECKPOINT_PERIOD, max_iter=max_iter
     )
 
-    writers = (
-        [
-            CommonMetricPrinter(max_iter),
-            JSONWriter(os.path.join(cfg.OUTPUT_DIR, "metrics.json")),
-            TensorboardXWriter(cfg.OUTPUT_DIR),
-        ]
-        if comm.is_main_process()
-        else []
-    )
+    writers = default_writers(cfg.OUTPUT_DIR, max_iter) if comm.is_main_process() else []
 
     # compared to "train_net.py", we do not support accurate timing and
-    # precise BN here, because they are not trivial to implement
+    # precise BN here, because they are not trivial to implement in a small training loop
+
     data_loader = build_detection_train_loader(cfg)
     logger.info("Starting training from iteration {}".format(start_iter))
+    
     with EventStorage(start_iter) as storage:
         for data, iteration in zip(data_loader, range(start_iter, max_iter)):
-            iteration = iteration + 1
-            storage.step()
+            storage.iter = iteration
 
             loss_dict = model(data)
-            losses = sum(loss for loss in loss_dict.values())
+            losses = sum(loss_dict.values())
             assert torch.isfinite(losses).all(), loss_dict
 
             loss_dict_reduced = {k: v.item() for k, v in comm.reduce_dict(loss_dict).items()}
@@ -169,51 +159,109 @@ def do_train(cfg, model, resume=False):
 
             if (
                 cfg.TEST.EVAL_PERIOD > 0
-                and iteration % cfg.TEST.EVAL_PERIOD == 0
-                and iteration != max_iter
+                and (iteration + 1) % cfg.TEST.EVAL_PERIOD == 0
+                and iteration != max_iter - 1
             ):
                 do_test(cfg, model)
                 # Compared to "train_net.py", the test results are not dumped to EventStorage
                 comm.synchronize()
 
-            if iteration - start_iter > 5 and (iteration % 20 == 0 or iteration == max_iter):
+            if iteration - start_iter > 5 and (
+                (iteration + 1) % 20 == 0 or iteration == max_iter - 1
+            ):
                 for writer in writers:
                     writer.write()
             periodic_checkpointer.step(iteration)
 
+def transfer_pretrained_weights(model, pretrained_model_pth):
+    pretrained_weights = torch.load(pretrained_model_pth)['model']
+    new_dict = {k.replace('module.',''):v for k, v in pretrained_weights.items()
+                if 'cls_score' not in k and 'bbox_pred' not in k}
+    this_state = model.state_dict()
+    this_state.update(new_dict)
+    model.load_state_dict(this_state)
+    return model
 
-def setup(args):
+def regiser_dataset():
+    from detectron2.data.datasets import load_coco_json, register_coco_instances
+    from detectron2.data import MetadataCatalog
+
+    cur_dir = os.getcwd()
+    data_dir = os.path.join(cur_dir, "datasets")
+
+    # Training dataset
+    training_dataset_name = "dla_train"
+    training_json_file = os.path.join(data_dir, "siemens/train/train2021.json")
+    training_img_dir = os.path.join(data_dir, "siemens/train/images")
+    # Register custom training dataset
+    register_coco_instances(training_dataset_name, {}, training_json_file, training_img_dir)
+
+    # Validation dataset
+    validation_dataset_name = "dla_val"
+    validation_json_file = os.path.join(data_dir, "siemens/val/train2021.json")
+    validation_img_dir = os.path.join(data_dir, "siemens/val/images")
+    # Register custom training dataset
+    register_coco_instances(validation_dataset_name, {}, validation_json_file, validation_img_dir)
+    
+    # Get training/validation dictionary
+    training_dict = load_coco_json(training_json_file, training_img_dir,
+                    dataset_name=training_dataset_name)
+    validation_dict = load_coco_json(validation_json_file, validation_img_dir,
+                    dataset_name=validation_dataset_name)
+    training_metadata = MetadataCatalog.get(training_dataset_name)
+    validation_metadata = MetadataCatalog.get(validation_dataset_name)
+
+    return training_dict, validation_dict, training_metadata, validation_metadata
+
+def setup(args, training_metadata):
     """
     Create configs and perform basic setups.
     """
     cfg = get_cfg()
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
-    cfg.freeze()
+    cfg.DATASETS.TRAIN = ("dla_train",)
+    cfg.DATASETS.TEST = ("val_train")
+    cfg.DATALOADER.NUM_WORKERS = 2
+    cfg.MODEL.WEIGHTS = "models/Resnet-101/model_final.pth"
+    cfg.SOLVER.IMS_PER_BATCH = 2
+    cfg.SOLVER.BASE_LR = 0.00025  # pick a good LR
+    cfg.SOLVER.MAX_ITER = 300    # 300 iterations seems good enough for a toy dataset; you will need to train longer for a practical dataset
+    cfg.SOLVER.STEPS = []        # do not decay learning rate
+    cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 512   # 128 faster, and good enough for a toy dataset (default: 512)
+    cfg.MODEL.ROI_HEADS.NUM_CLASSES = len(training_metadata.thing_classes)  # has 6 classes (see https://detectron2.readthedocs.io/tutorials/datasets.html#update-the-config-for-new-datasets)
+    
+    # Solver options
+    cfg.SOLVER.BASE_LR = 1e-3           # Base learning rate
+    cfg.SOLVER.GAMMA = 0.5              # Learning rate decay
+    cfg.SOLVER.STEPS = (250, 500, 750)  # Iterations at which to decay learning rate
+    cfg.SOLVER.MAX_ITER = 1000          # Maximum number of iterations
+    cfg.SOLVER.WARMUP_ITERS = 100       # Warmup iterations to linearly ramp learning rate from zero
+    cfg.SOLVER.IMS_PER_BATCH = 1        # Lower to reduce memory usage (1 is the lowest)
+
     default_setup(
         cfg, args
     )  # if you don't like any of the default setup, write your own setup code
     return cfg
 
 
-def main(args):
-    cfg = setup(args)
+def main(args, pretrained_model_pth="models/Resnet-101/model_final.pth"):
+    training_dict, validation_dict, training_metadata, validation_metadata = regiser_dataset()
+    # create config for setup
+    cfg = setup(args, training_metadata)
 
-    model = build_model(cfg)
+    # load model
+    model = build_model(cfg)    
+    model = DetectionCheckpointer(model).load(pretrained_model_pth)
     logger.info("Model:\n{}".format(model))
-    if args.eval_only:
-        DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
-            cfg.MODEL.WEIGHTS, resume=args.resume
-        )
-        return do_test(cfg, model)
-
+    
     distributed = comm.get_world_size() > 1
     if distributed:
         model = DistributedDataParallel(
             model, device_ids=[comm.get_local_rank()], broadcast_buffers=False
         )
 
-    do_train(cfg, model)
+    do_train(cfg, model, resume=args.resume)
     return do_test(cfg, model)
 
 

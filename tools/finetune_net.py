@@ -37,6 +37,7 @@ from detectron2.evaluation import (
     verify_results,
 )
 from detectron2.modeling import GeneralizedRCNNWithTTA
+from detectron2.checkpoint import DetectionCheckpointer
 
 from detectron2.data.datasets import register_coco_instances
 from detectron2.utils.logger import setup_logger
@@ -99,18 +100,23 @@ def setup(args):
     default_setup(cfg, args)
     return cfg
 
-def main(args, pretrained_model_pth="./models/Resnet-101/model_final.pth"):
+def main(args, pretrained_model_pth="models/Resnet-101/model_final.pth"):
     """ source: https://github.com/facebookresearch/maskrcnn-benchmark/issues/15
     """
     cfg = setup(args)
 
-    if args.eval_only:
+    if args.eval_only:       
+    
         model = FineTuner.build_model(cfg)
+        model = DetectionCheckpointer(model).load(pretrained_model_pth)
         model = transfer_pretrained_weights(model, pretrained_model_pth) # Todo Test
+        
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             cfg.MODEL.WEIGHTS, resume=args.resume
         )
+        
         res = FineTuner.test(cfg, model)
+
         if comm.is_main_process():
             verify_results(cfg, res)
         if cfg.TEST.AUG.ENABLED:
@@ -123,6 +129,7 @@ def main(args, pretrained_model_pth="./models/Resnet-101/model_final.pth"):
     """
     # trainer = FineTuner(cfg)
     FineTuner.resume_or_load(resume=args.resume)
+
     if cfg.TEST.AUG.ENABLED:
         FineTuner.register_hooks(
             [hooks.EvalHook(0, lambda: FineTuner.test_with_TTA(cfg, FineTuner.model))]
@@ -131,13 +138,19 @@ def main(args, pretrained_model_pth="./models/Resnet-101/model_final.pth"):
 
 
 if __name__ == "__main__":
+
+    # parse arguments
     args = default_argument_parser().parse_args()
+
+    # output
     output_dir = os.path.join('./output', datetime.datetime.now().strftime('%Y%m%dT%H%M'))
     os.makedirs(output_dir, exist_ok=True)
+    
     # logging
     logger = setup_logger(output=output_dir)
     logger.info("Command Line Args:", args)
 
+    # register custom dataset in COCO format
     register_coco_instances(
         "dla_train",
         {},
@@ -152,14 +165,17 @@ if __name__ == "__main__":
         "./datasets/siemens/val/images"
     )
 
+    # register metadata
     metadata_train = MetadataCatalog.get("dla_train")
     metadata_val = MetadataCatalog.get("dla_val")
 
+    # create config
     cfg = get_cfg()
     # mask rcnn resnet101
-    # cfg.merge_from_file("configs/DLA_mask_rcnn_R_101_FPN_3x.yaml")
+    cfg.merge_from_file("configs/DLA_mask_rcnn_R_101_FPN_3x.yaml")
+    
     # mask rcnn resnext
-    cfg.merge_from_file("configs/DLA_mask_rcnn_X_101_32x8d_FPN_3x.yaml")
+    # cfg.merge_from_file("configs/DLA_mask_rcnn_X_101_32x8d_FPN_3x.yaml")
 
     cfg.OUTPUT_DIR = output_dir
 
@@ -167,6 +183,7 @@ if __name__ == "__main__":
 
     # serialize the training config
     cfg_str = cfg.dump()
+
     with open(os.path.join(cfg.OUTPUT_DIR, "finetuning_config.yaml"), "w") as f:
         f.write(cfg_str)
     f.close()
