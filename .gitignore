@@ -48,4 +48,3 @@ env/
 venv/
 .env/
 .venv/
-detectron2/*
