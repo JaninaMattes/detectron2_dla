@@ -249,7 +249,7 @@ def main(args, pretrained_model_pth="models/Resnet-101/model_final.pth"):
     training_dict, validation_dict, training_metadata, validation_metadata = regiser_dataset()
     # create config for setup
     cfg = setup(args, training_metadata)
-
+    
     # load model
     model = build_model(cfg)    
     model = DetectionCheckpointer(model).load(pretrained_model_pth)
