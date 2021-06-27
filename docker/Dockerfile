@@ -2,6 +2,7 @@ FROM nvidia/cuda:10.1-cudnn7-devel
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y \
+    git \
 	python3-opencv ca-certificates python3-dev git wget sudo && \
   rm -rf /var/lib/apt/lists/*
 
@@ -42,8 +43,16 @@ COPY detectron2/configs/DLA_* /home/appuser/detectron2_repo/config
 RUN mkdir /home/appuser/detectron2
 COPY . /home/appuser/detectron2
 
+# download, decompress the data
+RUN mkdir /home/appuser/detectron2/datasets
+RUN wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1NAgGrYoQJwdNXE-nFzx0yEJEoqxMcqh2' -O siemens.zip
+RUN unzip siemens.zip -d /home/appuser/detectron2/datasets
+RUN rm -r siemens.zip
+RUN ls '/home/appuser/detectron2/datasets'
+
 RUN mkdir /home/appuser/detectron2/pretrained_model
 RUN wget https://www.dropbox.com/sh/wgt9skz67usliei/AADGw0h1y7K5vO0akulyXm-qa/model_final.pth?dl=0 /home/appuser/detectron2/pretrained_model
+RUN ls '/home/appuser/detectron2/pretrained_model'
 
 # run it, for example:
 # wget http://images.cocodataset.org/val2017/000000439715.jpg -O input.jpg
@@ -52,4 +61,4 @@ RUN wget https://www.dropbox.com/sh/wgt9skz67usliei/AADGw0h1y7K5vO0akulyXm-qa/mo
 	#--input input.jpg --output outputs/ \
 	#--opts MODEL.WEIGHTS detectron2://COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl
 
-RUN python3 tools/finetune_net.py
+RUN python3 finetuning/finetune_net_dla.py.py
