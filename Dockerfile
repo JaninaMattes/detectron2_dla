@@ -2,7 +2,7 @@ FROM nvidia/cuda:10.1-cudnn7-devel
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y \
-	python3-opencv ca-certificates python3-dev git wget sudo unzip && \
+	python3-opencv ca-certificates python3-dev git wget sudo unzip ninja-build && \
     rm -rf /var/lib/apt/lists/*
 
 # create a non-root user
@@ -25,33 +25,35 @@ RUN pip install --user 'git+https://github.com/cocodataset/cocoapi.git#subdirect
 
 RUN pip install --user 'git+https://github.com/facebookresearch/fvcore'
 
-# Fetch pre-trained model
-RUN mkdir /home/appuser/detectron2
-COPY . /home/appuser/detectron2
-WORKDIR /home/appuser/detectron2
-
 # install detectroon2
-RUN git clone https://github.com/facebookresearch/detectron2.git /home/appuser/detectron2/detectron2_repo
+RUN mkdir /home/appuser/detectron2_repo
+RUN git clone https://github.com/facebookresearch/detectron2.git /home/appuser/detectron2_repo
 ENV FORCE_CUDA="1"
 
 # This will build detectron2 for all common cuda architectures and take a lot more time,
 # because inside `docker build`, there is no way to tell which architecture will be used.
 ENV TORCH_CUDA_ARCH_LIST="Kepler;Kepler+Tesla;Maxwell;Maxwell+Tegra;Pascal;Volta;Turing"
-RUN python3 -m pip install -e /home/appuser/detectron2/detectron2_repo
+RUN pip install --user -e /home/appuser/detectron2_repo
 
 # Set a fixed model cache directory.
 ENV FVCORE_CACHE="/tmp"
 
-# download, decompress the training dataset used
-RUN mkdir /home/appuser/detectron2/datasets
+WORKDIR /home/appuser/detectron2_repo
 
+# copy files from local repo
+COPY configs/ /home/appuser/detectron2_repo/configs
+COPY finetune_net_dla.py /home/appuser/detectron2_repo
+
+# download, decompress the training dataset used
 RUN gdown https://drive.google.com/uc?id=1NAgGrYoQJwdNXE-nFzx0yEJEoqxMcqh2
-RUN unzip siemens.zip -d /home/appuser/detectron2/datasets
+RUN unzip siemens.zip -d /home/appuser/detectron2_repo/datasets
 RUN rm -r siemens.zip
 
 # download, pretrained models
-RUN mkdir /home/appuser/detectron2/pretrained_models
-RUN wget https://www.dropbox.com/sh/wgt9skz67usliei/AADGw0h1y7K5vO0akulyXm-qa/model_final.pth -P /home/appuser/detectron2/pretrained_models/
+RUN mkdir /home/appuser/detectron2_repo/pretrained_models
+RUN wget https://www.dropbox.com/sh/wgt9skz67usliei/AADGw0h1y7K5vO0akulyXm-qa/model_final.pth -P /home/appuser/detectron2_repo/pretrained_models/
+
+RUN python3 -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 
 # Command line options
 ENTRYPOINT [ "python3", "finetune_net_dla.py" ]  
