@@ -1,44 +1,24 @@
-## Use the container (with docker ≥ 19.03)
-
+## Run the container
+Change to the *docker* directory of this repository:
 ```
-cd docker/
-# Build:
-docker build --build-arg USER_ID=$UID -t detectron2:v0 .
-# Launch (require GPUs):
-docker run --gpus all -it \
-  --shm-size=8gb --env="DISPLAY" --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-  --name=detectron2 detectron2:v0
-
-# Grant docker access to host X server to show images
-xhost +local:`docker inspect --format='{{ .Config.Hostname }}' detectron2`
-```
-
-## Use the container (with docker-compose ≥ 1.28.0)
-
-Install docker-compose and nvidia-docker-toolkit, then run:
-```
-cd docker && USER_ID=$UID docker-compose run detectron2
-```
-
-## Use the deployment container (to test C++ examples)
-After building the base detectron2 container as above, do:
-```
-# Build:
-docker build -t detectron2-deploy:v0 -f deploy.Dockerfile .
-# Launch:
-docker run --gpus all -it detectron2-deploy:v0
+cd docker
+USER_ID=$UID docker-compose run detectron2
 ```
 
 #### Using a persistent cache directory
+Prevents models to be re-downloaded on every run, by storing them in a cache directory.
 
-You can prevent models from being re-downloaded on every run,
-by storing them in a cache directory.
+`docker-compose run --volume=/path/to/cache:/tmp:rw detectron2`
 
-To do this, add `--volume=$HOME/.torch/fvcore_cache:/tmp:rw` in the run command.
+## Rebuild the container
+Rebuild the container  by `USER_ID=$UID docker-compose build detectron2`.
+This is only necessary when `Dockerfile` has been changed. The initial build is done automatically.
 
 ## Install new dependencies
 Add the following to `Dockerfile` to make persistent changes.
 ```
-RUN sudo apt-get update && sudo apt-get install -y vim
+RUN sudo apt-get update && sudo apt-get install -y \
+  nano vim emacs
+RUN pip install --user pandas
 ```
 Or run them in the container to make temporary changes.
