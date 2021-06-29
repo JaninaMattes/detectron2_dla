@@ -24,14 +24,13 @@ RUN pip install --user torch==1.8.1+cu101 torchvision==0.9.1+cu101 torchaudio==0
 RUN pip install --user 'git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI'
 
 RUN pip install --user 'git+https://github.com/facebookresearch/fvcore'
-# install detectron2
-RUN git clone https://github.com/facebookresearch/detectron2 detectron2
+# install detectroon2
+RUN pip install --user 'git+https://github.com/facebookresearch/detectron2.git'
 ENV FORCE_CUDA="1"
+
 # This will build detectron2 for all common cuda architectures and take a lot more time,
 # because inside `docker build`, there is no way to tell which architecture will be used.
 ENV TORCH_CUDA_ARCH_LIST="Kepler;Kepler+Tesla;Maxwell;Maxwell+Tegra;Pascal;Volta;Turing"
-RUN pip install --user -e detectron2
-#RUN pip install --user detectron2==0.4 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cu101/torch1.8/index.html
 
 # Set a fixed model cache directory.
 ENV FVCORE_CACHE="/tmp"
@@ -40,9 +39,6 @@ ENV FVCORE_CACHE="/tmp"
 RUN mkdir /home/appuser/detectron2
 COPY . /home/appuser/detectron2
 WORKDIR /home/appuser/detectron2
-
-# Run installation
-RUN python /detectron2/setup.py build develop
 
 # download, decompress the training dataset used
 RUN mkdir /home/appuser/detectron2/datasets
