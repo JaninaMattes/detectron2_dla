@@ -44,7 +44,7 @@ RUN ls -la /home/appuser/detectron2
 
 # download, decompress the training dataset used
 RUN mkdir /home/appuser/detectron2/datasets
-RUN wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1NAgGrYoQJwdNXE-nFzx0yEJEoqxMcqh2' -O /home/appuser/siemens.zip
+RUN wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1NAgGrYoQJwdNXE-nFzx0yEJEoqxMcqh2' -O siemens.zip
 RUN unzip /home/appuser/siemens.zip -d /home/appuser/detectron2/datasets
 RUN rm -r /home/appuser/siemens.zip
 RUN ls -la /home/appuser/detectron2/datasets

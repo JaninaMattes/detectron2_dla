@@ -18,8 +18,8 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
 
 
-      version: '2.3'
-
+# Example: 
+  
 # services:
 #   nvsmi:
 #     image: ubuntu:16.04
