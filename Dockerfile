@@ -19,7 +19,7 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
 
 # install dependencies
 # See https://pytorch.org/ for other options if you use a different version of CUDA
-RUN pip install --user torchvision torchtext==0.9.1 tensorboard cython cmake pyyaml==5.1
+RUN pip install --user torchvision torchtext==0.9.1 tensorboard cython cmake pyyaml==5.1 gdown
 RUN pip install --user torch==1.8.1+cu101 torchvision==0.9.1+cu101 torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html
 RUN pip install --user 'git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI'
 
@@ -35,22 +35,28 @@ RUN pip install --user -e detectron2_repo
 
 # Set a fixed model cache directory.
 ENV FVCORE_CACHE="/tmp"
-WORKDIR /home/appuser/detectron2_repo
 
 # Fetch pre-trained model
 RUN mkdir /home/appuser/detectron2
 COPY . /home/appuser/detectron2
-RUN ls -la /home/appuser/detectron2
+WORKDIR /home/appuser/detectron2
 
 # download, decompress the training dataset used
 RUN mkdir /home/appuser/detectron2/datasets
+<<<<<<< HEAD:Dockerfile
 RUN wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=1NAgGrYoQJwdNXE-nFzx0yEJEoqxMcqh2' -O siemens.zip
 RUN unzip /home/appuser/siemens.zip -d /home/appuser/detectron2/datasets
 RUN rm -r /home/appuser/siemens.zip
 RUN ls -la /home/appuser/detectron2/datasets
+=======
+RUN gdown https://drive.google.com/uc?id=1NAgGrYoQJwdNXE-nFzx0yEJEoqxMcqh2
+RUN unzip siemens.zip -d /home/appuser/detectron2/datasets
+RUN rm -r siemens.zip
+>>>>>>> 373a88b828f0ab4ef07c57eea65a77f0c47e04b7:docker/Dockerfile
 
-RUN mkdir /home/appuser/detectron2/pretrained_model
-RUN wget https://www.dropbox.com/sh/wgt9skz67usliei/AADGw0h1y7K5vO0akulyXm-qa/model_final.pth -P pretrained_models/
+# download, pretrained models
+RUN mkdir /home/appuser/detectron2/pretrained_models
+RUN wget https://www.dropbox.com/sh/wgt9skz67usliei/AADGw0h1y7K5vO0akulyXm-qa/model_final.pth -P /home/appuser/detectron2/pretrained_models/
 
 # Command line options
-ENTRYPOINT [ "python3", "/home/appuser/detectron2/finetuning/finetune_net_dla.py" ]  
+ENTRYPOINT [ "python3", ".././finetuning/finetune_net_dla.py" ]  
