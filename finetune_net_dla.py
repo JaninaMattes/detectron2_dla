@@ -15,6 +15,7 @@ this file as an example of how to use the library.
 You may want to write your own script with your datasets and other customizations.
 """
 
+from detectron2.engine.defaults import DefaultTrainer
 import logging
 import os
 import datetime
@@ -25,7 +26,7 @@ import detectron2.utils.comm as comm
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
-from detectron2.engine.defaults import DefaultFineTuner, default_argument_parser, default_setup, hooks, launch
+from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, hooks, launch
 from detectron2.evaluation import (
     CityscapesEvaluator,
     COCOEvaluator,
@@ -45,7 +46,7 @@ from detectron2.utils.logger import setup_logger
 logger = logging.getLogger("detectron2")
 
 
-class FineTuner(DefaultFineTuner):
+class FineTuner(DefaultTrainer):
     """
     We use the "DefaultFineTuner" which contains a number pre-defined logic for
     standard training workflow. They may not work for you, especially if you
