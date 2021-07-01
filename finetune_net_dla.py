@@ -125,7 +125,7 @@ if __name__ == "__main__":
     output_dir = os.path.join('./output', datetime.datetime.now().strftime('%Y%m%dT%H%M'))
     os.makedirs(output_dir, exist_ok=True)
     logger = setup_logger(output=output_dir)
-    logger.info("Command Line Args:", args)
+    # logger.info("Command Line Args:", args)
 
     register_coco_instances(
         "dla_train",
