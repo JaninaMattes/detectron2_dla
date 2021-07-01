@@ -2,7 +2,8 @@ FROM nvidia/cuda:10.1-cudnn7-devel
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y \
-	python3-opencv ca-certificates python3-dev git wget sudo unzip ninja-build && \
+	python3-opencv ca-certificates python3-dev git wget \
+	sudo unzip ninja-build apt-utils && \
     rm -rf /var/lib/apt/lists/*
 
 # create a non-root user
