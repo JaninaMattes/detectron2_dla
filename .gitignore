@@ -6,7 +6,6 @@ inference_test_output
 
 # *.jpg
 *.png
-*.txt
 *.zip
 
 # compilation and distribution
