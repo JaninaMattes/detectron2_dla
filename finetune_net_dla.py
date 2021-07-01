@@ -27,16 +27,7 @@ from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
 from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, hooks, launch
-from detectron2.evaluation import (
-    CityscapesEvaluator,
-    COCOEvaluator,
-    COCOPanopticEvaluator,
-    DatasetEvaluators,
-    LVISEvaluator,
-    PascalVOCDetectionEvaluator,
-    SemSegEvaluator,
-    verify_results,
-)
+from detectron2.evaluation import *
 from detectron2.modeling import GeneralizedRCNNWithTTA
 
 
