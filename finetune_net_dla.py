@@ -148,7 +148,7 @@ if __name__ == "__main__":
     # mask rcnn resnet101
     # cfg.merge_from_file("configs/DLA_mask_rcnn_R_101_FPN_3x.yaml")
     # mask rcnn resnext
-    cfg.merge_from_file("configs/DLA_mask_rcnn_X_101_32x8d_FPN_3x_Finetune.yaml")
+    cfg.merge_from_file("configs/DLA_mask_rcnn_R_101_FPN_3x_Finetune.yaml")
 
     cfg.OUTPUT_DIR = output_dir
 
