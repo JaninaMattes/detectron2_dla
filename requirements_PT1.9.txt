@@ -1,0 +1,10 @@
+pyyaml==5.1
+cmake
+gdown
+python-dotenv
+opencv-python
+Pillow
+gunicorn
+pdf2image
+# tracking
+mlflow
