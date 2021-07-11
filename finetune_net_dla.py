@@ -30,9 +30,10 @@ from detectron2.engine import DefaultTrainer, default_argument_parser, default_s
 from detectron2.evaluation import *
 from detectron2.modeling import GeneralizedRCNNWithTTA
 
-
 from detectron2.data.datasets import register_coco_instances
 from detectron2.utils.logger import setup_logger
+
+# from mlflow import log_metric, log_param, log_artifacts
 
 logger = logging.getLogger("detectron2")
 
@@ -163,3 +164,6 @@ if __name__ == "__main__":
     fineTuner = FineTuner(cfg)
     fineTuner.resume_or_load(resume=False)
     fineTuner.train()
+
+    # log_artifacts("outputs")
+

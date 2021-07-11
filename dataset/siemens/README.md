@@ -13,10 +13,10 @@ Convert *.json files to COCO format:
 
 ''' python .\datasets\convert_coco.py C:\Users\z004c84d\Documents\DEV\detectron2\datasets\siemens\annotations 
     
-    python3 datasets/convert_coco.py /mnt/c/Users/z004c84d/Documents/DEV/detectron2/datasets/siemens/train/images --output "/mnt/c/Users/z004c84d/Documents/DEV/detectron2/datasets/siemens/train/train2021.json"
+    python3 dataset/convert_coco.py /mnt/c/Users/z004c84d/Documents/DEV/detectron2/dataset/siemens/train/images --output "/mnt/c/Users/z004c84d/Documents/DEV/detectron2/dataset/siemens/train/train2021.json"
 
 
-        python3 datasets/convert_coco.py /mnt/c/Users/z004c84d/Documents/DEV/detectron2/datasets/siemens/val/images --output "/mnt/c/Users/z004c84d/Documents/DEV/detectron2/datasets/siemens/val/val2021.json"
+        python3 dataset/convert_coco.py /mnt/c/Users/z004c84d/Documents/DEV/detectron2/dataset/siemens/val/images --output "/mnt/c/Users/z004c84d/Documents/DEV/detectron2/dataset/siemens/val/val2021.json"
 '''
 
 
