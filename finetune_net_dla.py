@@ -128,6 +128,12 @@ if __name__ == "__main__":
     logger = setup_logger(output=output_dir)
     # logger.info("Command Line Args:", args)
 
+    # Setup ML Flow Tracking
+    # mlflow.set_tracking_uri("http://YOUR-SERVER:4040")
+    # mlflow.set_experiment("exp_{}".format(datetime.datetime.now().strftime('%Y%m%dT%H%M')))
+
+    # log_artifacts("output")
+
     register_coco_instances(
         "dla_train",
         {},
@@ -147,8 +153,6 @@ if __name__ == "__main__":
 
     cfg = get_cfg()
     # mask rcnn resnet101
-    # cfg.merge_from_file("configs/DLA_mask_rcnn_R_101_FPN_3x.yaml")
-    # mask rcnn resnext
     cfg.merge_from_file("configs/DLA_mask_rcnn_R_101_FPN_3x_Finetune.yaml")
 
     cfg.OUTPUT_DIR = output_dir
@@ -164,6 +168,4 @@ if __name__ == "__main__":
     fineTuner = FineTuner(cfg)
     fineTuner.resume_or_load(resume=False)
     fineTuner.train()
-
-    # log_artifacts("outputs")
 
